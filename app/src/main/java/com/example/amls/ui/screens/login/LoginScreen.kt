@@ -17,12 +17,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.amls.ui.AuthViewModel
 import com.example.amls.ui.navigation.DestinoAmls
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(navController: NavController) {
+fun LoginScreen(
+    navController: NavController,
+    viewModel: AuthViewModel = hiltViewModel()
+) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
@@ -132,6 +138,7 @@ fun LoginScreen(navController: NavController) {
                     // Botón Principal: Iniciar Sesión
                     Button(
                         onClick = {
+                            viewModel.iniciarSesion()
                             navController.navigate(DestinoAmls.Reproduccion.ruta)
                         },
                         modifier = Modifier

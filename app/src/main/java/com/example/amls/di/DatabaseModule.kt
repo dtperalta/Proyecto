@@ -3,6 +3,7 @@ package com.example.amls.di
 import android.content.Context
 import com.example.amls.data.AmlsDatabase
 import com.example.amls.data.PerfilAprendizDao
+import com.example.amls.data.RecursoEducativoDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -23,5 +24,10 @@ object DatabaseModule {
     @Provides
     fun providePerfilDao(database: AmlsDatabase): PerfilAprendizDao {
         return database.perfilAprendizDao()
+    }
+
+    @Provides
+    fun provideRecursoEducativoDao(database: AmlsDatabase): RecursoEducativoDao {
+        return database.recursoEducativoDao()
     }
 }
