@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.example.amls.ui.LearningViewModel
 import com.example.amls.ui.PerfilViewModel
 import com.example.amls.ui.navigation.DestinoAmls
 
@@ -25,15 +26,27 @@ import com.example.amls.ui.navigation.DestinoAmls
 @Composable
 fun PlaybackScreen(
     navController: NavController,
-    viewModel: PerfilViewModel = hiltViewModel()
+    perfilViewModel: PerfilViewModel = hiltViewModel(),
+    learningViewModel: LearningViewModel = hiltViewModel()
 ) {
     // Escuchamos el perfil REAL de la base de datos (reactivo)
-    val perfil by viewModel.perfilReal.collectAsState()
+    val perfil by perfilViewModel.perfilReal.collectAsState()
+    
+    // Escuchamos los recursos educativos descargados
+    val recursos by learningViewModel.recursos.collectAsState()
+    
+    // Para este prototipo, tomaremos el primer recurso descargado (si existe)
+    val leccionActual = recursos.firstOrNull()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Lección 1: Introducción", fontWeight = FontWeight.Bold) },
+                title = { 
+                    Text(
+                        text = leccionActual?.titulo ?: "Cargando lección...", 
+                        fontWeight = FontWeight.Bold
+                    ) 
+                },
                 actions = {
                     IconButton(onClick = { navController.navigate(DestinoAmls.ConfiguracionAccesibilidad.ruta) }) {
                         Icon(Icons.Default.Settings, contentDescription = "Configuración de Accesibilidad")
@@ -85,20 +98,38 @@ fun PlaybackScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            Text(
-                text = "Información del Curso",
-                color = Color(0xFF005179),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
+            // Mostramos información dinámica de la base de datos
+            if (leccionActual != null) {
+                Text(
+                    text = "Nivel de Dificultad: ${leccionActual.nivel_dificultad}",
+                    color = Color(0xFF005179),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = "Formato sugerido: ${leccionActual.tipo_formato.replace("_", " ").uppercase()}",
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontSize = 14.sp
+                )
+            } else {
+                Text(
+                    text = "Información del Curso",
+                    color = Color(0xFF005179),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                text = "En esta sección se muestra el contenido educativo. Solo los subtítulos dentro del reproductor se verán afectados por los ajustes de accesibilidad de fuente y contraste.",
-                color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 16.sp
-            )
+                Text(
+                    text = "En esta sección se muestra el contenido educativo. Solo los subtítulos dentro del reproductor se verán afectados por los ajustes de accesibilidad de fuente y contraste.",
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontSize = 16.sp
+                )
+            }
 
             Spacer(modifier = Modifier.height(32.dp))
 

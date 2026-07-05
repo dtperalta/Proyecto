@@ -14,7 +14,7 @@ class AuthViewModel @Inject constructor(
 
     fun iniciarSesion() {
         viewModelScope.launch {
-            // Aquí iría tu validación de credenciales local...
+            // Validación de credenciales local...
             
             // Descargamos el tema 1 en segundo plano
             sincronizacionRepository.descargarTema("TEMA-1")
