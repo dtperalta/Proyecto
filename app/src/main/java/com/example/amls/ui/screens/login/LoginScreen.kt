@@ -1,27 +1,139 @@
 package com.example.amls.ui.screens.login
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.amls.ui.AuthUiState
 import com.example.amls.ui.AuthViewModel
+import com.example.amls.ui.clickableSinIndicacion
 import com.example.amls.ui.navigation.DestinoAmls
+
+@Composable
+fun EncabezadoDecorativo(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(180.dp)
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawCircle(
+                color = VerdeAzulado.copy(alpha = 0.12f),
+                radius = 120f,
+                center = Offset(size.width * 0.15f, size.height * 0.25f)
+            )
+            drawCircle(
+                color = FucsiaAcento.copy(alpha = 0.10f),
+                radius = 90f,
+                center = Offset(size.width * 0.85f, size.height * 0.15f)
+            )
+            drawCircle(
+                color = AzulPrincipal.copy(alpha = 0.08f),
+                radius = 150f,
+                center = Offset(size.width * 0.7f, size.height * 0.7f)
+            )
+        }
+
+        Box(
+            modifier = Modifier.align(Alignment.Center),
+            contentAlignment = Alignment.Center
+        ) {
+            Surface(
+                modifier = Modifier.size(72.dp),
+                shape = CircleShape,
+                shadowElevation = 6.dp
+            ) {
+                Box(
+                    modifier = Modifier
+                        .background(Brush.linearGradient(listOf(VerdeAzulado, AzulPrincipal))),
+                    contentAlignment = Alignment.Center
+                ) {
+                    androidx.compose.material3.Text(
+                        "AMLS", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp
+                    )
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .offset(x = 24.dp, y = (-24).dp)
+                    .size(16.dp)
+                    .background(FucsiaAcento, CircleShape)
+                    .align(Alignment.Center)
+            )
+        }
+    }
+}
+
+@Composable
+fun AmlsTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    esPassword: Boolean = false
+) {
+    var mostrar by remember { mutableStateOf(false) }
+    Column(modifier = modifier) {
+        androidx.compose.material3.Text(
+            label,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = GrisTexto,
+            modifier = Modifier.padding(start = 6.dp, bottom = 6.dp)
+        )
+        TextField(
+            value = value,
+            onValueChange = onValueChange,
+            singleLine = true,
+            visualTransformation = if (esPassword && !mostrar) PasswordVisualTransformation() else VisualTransformation.None,
+            trailingIcon = if (esPassword) {
+                {
+                    TextButton(onClick = { mostrar = !mostrar }) {
+                        androidx.compose.material3.Text(if (mostrar) "Ocultar" else "Mostrar", fontSize = 12.sp, color = AzulPrincipal)
+                    }
+                }
+            } else null,
+            shape = RoundedCornerShape(16.dp),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                cursorColor = AzulPrincipal
+            ),
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+fun EtiquetaContexto(texto: String) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(FucsiaAcento.copy(alpha = 0.12f))
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+    ) {
+        androidx.compose.material3.Text(texto, color = FucsiaAcento, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,158 +144,109 @@ fun LoginScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    // Colores base de la marca AMLS
-    val primaryBlue = Color(0xFF005179)
-    val secondaryBlue = Color(0xFF0077B6)
-    val backgroundColor = Color(0xFFF8FAFC)
+    val uiState by viewModel.uiState.collectAsState()
+    val camposHabilitados = uiState !is AuthUiState.Cargando
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(backgroundColor)
-    ) {
-        // Fondo decorativo superior
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.35f)
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(primaryBlue, secondaryBlue)
-                    ),
-                    shape = RoundedCornerShape(bottomStart = 60.dp, bottomEnd = 60.dp)
-                )
-        )
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top
-        ) {
-            Spacer(modifier = Modifier.height(60.dp))
-
-            // Logo / Icono de la App
-            Surface(
-                modifier = Modifier.size(100.dp),
-                shape = CircleShape,
-                color = Color.White,
-                shadowElevation = 8.dp
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = "AMLS",
-                        color = primaryBlue,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 24.sp
-                    )
-                }
+    LaunchedEffect(uiState) {
+        val estado = uiState
+        if (estado is AuthUiState.Exito) {
+            val destino = when {
+                !estado.emailVerificado -> DestinoAmls.VerificarEmail.ruta
+                !viewModel.quizCompletado() -> DestinoAmls.Quiz.ruta
+                else -> DestinoAmls.Inicio.ruta
             }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Text(
-                text = "Bienvenido de nuevo",
-                color = Color.White,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
-            )
-
-            Text(
-                text = "Inicia sesión para continuar",
-                color = Color.White.copy(alpha = 0.8f),
-                fontSize = 16.sp,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(40.dp))
-
-            // Tarjeta de Login
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    OutlinedTextField(
-                        value = email,
-                        onValueChange = { email = it },
-                        label = { Text("Email") },
-                        leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    OutlinedTextField(
-                        value = password,
-                        onValueChange = { password = it },
-                        label = { Text("Contraseña") },
-                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(32.dp))
-
-                    // Botón Principal: Iniciar Sesión
-                    Button(
-                        onClick = {
-                            viewModel.iniciarSesion()
-                            navController.navigate(DestinoAmls.Reproduccion.ruta)
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = primaryBlue)
-                    ) {
-                        Text("Iniciar Sesión", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Botón Secundario: Registrarse
-                    OutlinedButton(
-                        onClick = {
-                            navController.navigate(DestinoAmls.Registro.ruta)
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        border = RowDefaults.borderStroke(width = 1.dp, color = primaryBlue),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = primaryBlue)
-                    ) {
-                        Text("Registrarse", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
+            navController.navigate(destino) {
+                popUpTo(DestinoAmls.Login.ruta) { inclusive = true }
             }
-            
-            Spacer(modifier = Modifier.weight(1f))
-            
-            Text(
-                text = "Aprendizaje Móvil Adaptativo",
-                color = Color.Gray,
-                fontSize = 12.sp,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
         }
     }
-}
 
-// Objeto auxiliar para manejar bordes de OutlinedButton si es necesario (Material 3)
-object RowDefaults {
-    @Composable
-    fun borderStroke(width: androidx.compose.ui.unit.Dp, color: Color) = 
-        androidx.compose.foundation.BorderStroke(width, color)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(FondoSuave)
+    ) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 28.dp)
+        ) {
+            EncabezadoDecorativo()
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            EtiquetaContexto("Aprendizaje adaptativo")
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            androidx.compose.material3.Text(
+                "Bienvenido de nuevo",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            androidx.compose.material3.Text(
+                "Inicia sesión para continuar tu aprendizaje",
+                fontSize = 15.sp,
+                color = GrisTexto
+            )
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            AmlsTextField(value = email, onValueChange = { email = it }, label = "Correo electrónico")
+            Spacer(modifier = Modifier.height(14.dp))
+            AmlsTextField(value = password, onValueChange = { password = it }, label = "Contraseña", esPassword = true)
+
+            if (uiState is AuthUiState.Error) {
+                Spacer(modifier = Modifier.height(10.dp))
+                androidx.compose.material3.Text((uiState as AuthUiState.Error).mensaje, color = Color(0xFFDC2626), fontSize = 13.sp)
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = { navController.navigate(DestinoAmls.OlvideContrasena.ruta) }) {
+                    androidx.compose.material3.Text("¿Olvidaste tu contraseña?", color = AzulPrincipal, fontSize = 13.sp)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = { viewModel.iniciarSesion(email, password) },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = AzulPrincipal),
+                enabled = camposHabilitados && email.isNotBlank() && password.isNotBlank()
+            ) {
+                if (uiState is AuthUiState.Cargando) {
+                    CircularProgressIndicator(modifier = Modifier.size(22.dp), color = Color.White)
+                } else {
+                    androidx.compose.material3.Text("Iniciar sesión", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                androidx.compose.material3.Text("¿No tienes cuenta? ", color = GrisTexto, fontSize = 14.sp)
+                androidx.compose.material3.Text(
+                    "Regístrate",
+                    color = AzulPrincipal,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                    modifier = Modifier.clickableSinIndicacion { navController.navigate(DestinoAmls.Registro.ruta) }
+                )
+            }
+        }
+
+        androidx.compose.material3.Text(
+            "Aprendizaje Móvil Adaptativo",
+            color = GrisTexto,
+            fontSize = 12.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
+        )
+    }
 }

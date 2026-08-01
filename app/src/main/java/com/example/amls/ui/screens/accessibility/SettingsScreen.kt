@@ -6,51 +6,83 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.example.amls.ui.AuthViewModel
 import com.example.amls.ui.PerfilViewModel
-import kotlinx.coroutines.launch
+import com.example.amls.ui.navigation.DestinoAmls
+import com.example.amls.ui.theme.ModoTema
+import com.example.amls.ui.theme.ThemeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     navController: NavController,
-    viewModel: PerfilViewModel = hiltViewModel()
+    viewModel: PerfilViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel(),
+    themeViewModel: ThemeViewModel = hiltViewModel(LocalContext.current as androidx.activity.ComponentActivity)
 ) {
     val perfil by viewModel.perfilEditable.collectAsState()
+    val modoTema by themeViewModel.modoTema.collectAsState()
     val scrollState = rememberScrollState()
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
+    var mostrarDialogoLogout by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
-    Scaffold(
-        snackbarHost = {
-            SnackbarHost(snackbarHostState) { data ->
-                Snackbar(
-                    modifier = Modifier.padding(12.dp)
-                ) {
-                    Text(
-                        text = data.visuals.message,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center
-                    )
+    fun cerrarSesion() {
+        authViewModel.cerrarSesion()
+        navController.navigate(DestinoAmls.Login.ruta) {
+            popUpTo(0) { inclusive = true }
+        }
+    }
+
+    if (mostrarDialogoLogout) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoLogout = false },
+            title = { Text("Cerrar sesión") },
+            text = { Text("¿Seguro que quieres cerrar tu sesión?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    mostrarDialogoLogout = false
+                    cerrarSesion()
+                }) {
+                    Text("Cerrar sesión", color = Color.Red)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarDialogoLogout = false }) {
+                    Text("Cancelar")
                 }
             }
-        },
+        )
+    }
+
+    Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Ajustes de Perfil y Accesibilidad", color = Color.White, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar", tint = Color.White)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { mostrarDialogoLogout = true }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ExitToApp,
+                            contentDescription = "Cerrar sesión",
+                            tint = Color.White
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF005179))
@@ -65,7 +97,6 @@ fun SettingsScreen(
                 .verticalScroll(scrollState)
         ) {
             perfil?.let { p ->
-                // 1. Grado de Pérdida Auditiva
                 Text("Grado de Pérdida Auditiva", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
                 DropdownSelector(
@@ -76,7 +107,6 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // 2. Preferencia Comunicativa
                 Text("Preferencia Comunicativa", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
                 DropdownSelector(
@@ -87,7 +117,6 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // 3. Nivel de Lectura
                 Text("Nivel de Lectura", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
                 DropdownSelector(
@@ -100,7 +129,6 @@ fun SettingsScreen(
                 HorizontalDivider()
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // 4. Formato Visual
                 Text("Adaptación de Formato", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -127,8 +155,35 @@ fun SettingsScreen(
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(24.dp))
 
-                // Previsualización
+                Text("Apariencia", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(16.dp))
+
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    ModoTema.entries.forEachIndexed { index, modo ->
+                        SegmentedButton(
+                            selected = modoTema == modo,
+                            onClick = { themeViewModel.cambiarModo(modo) },
+                            shape = SegmentedButtonDefaults.itemShape(
+                                index = index,
+                                count = ModoTema.entries.size
+                            )
+                        ) {
+                            Text(
+                                when (modo) {
+                                    ModoTema.CLARO -> "Claro"
+                                    ModoTema.OSCURO -> "Oscuro"
+                                    ModoTema.SISTEMA -> "Sistema"
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
                 Text("Previsualización", style = MaterialTheme.typography.labelLarge)
                 Box(
                     modifier = Modifier
@@ -147,22 +202,17 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(40.dp))
 
-                // Botón Guardar
                 Box(
                     contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(all=16.dp)
+                    modifier = Modifier.fillMaxWidth().padding(all = 16.dp)
                 ) {
                     Button(
                         onClick = {
                             viewModel.guardarPerfil(p)
-                            scope.launch {
-                                snackbarHostState.showSnackbar("Configuraciones guardadas con éxito")
-                            }
+                            Toast.makeText(context, "Configuración guardada con éxito", Toast.LENGTH_SHORT).show()
+                            navController.popBackStack()
                         },
-                        modifier = Modifier
-                            .height(56.dp),
+                        modifier = Modifier.height(56.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF005179)),
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp)
                     ) {

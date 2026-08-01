@@ -8,9 +8,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,180 +18,124 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.example.amls.ui.AuthUiState
+import com.example.amls.ui.AuthViewModel
+import com.example.amls.ui.clickableSinIndicacion
+import com.example.amls.ui.navigation.DestinoAmls
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RegisterScreen(navController: NavController) {
+fun RegisterScreen(
+    navController: NavController,
+    viewModel: AuthViewModel = hiltViewModel()
+) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+    var errorValidacion by remember { mutableStateOf<String?>(null) }
 
-    val primaryBlue = Color(0xFF005179)
-    val secondaryBlue = Color(0xFF0077B6)
-    val backgroundColor = Color(0xFFF8FAFC)
+    val uiState by viewModel.uiState.collectAsState()
+    val camposHabilitados = uiState !is AuthUiState.Cargando
     val scrollState = rememberScrollState()
 
-    Box(
+    LaunchedEffect(uiState) {
+        if (uiState is AuthUiState.Exito) {
+            navController.navigate(DestinoAmls.VerificarEmail.ruta) {
+                popUpTo(DestinoAmls.Login.ruta) { inclusive = true }
+            }
+        }
+    }
+
+    fun intentarRegistrar() {
+        errorValidacion = when {
+            name.isBlank() -> "Ingresa tu nombre completo"
+            email.isBlank() -> "Ingresa tu correo electrónico"
+            password.length < 6 -> "La contraseña debe tener al menos 6 caracteres"
+            password != confirmPassword -> "Las contraseñas no coinciden"
+            else -> null
+        }
+        if (errorValidacion == null) viewModel.registrar(name, email, password)
+    }
+
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(backgroundColor)
+            .background(FondoSuave)
+            .verticalScroll(scrollState)
     ) {
-        // Fondo decorativo superior
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.35f)
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(primaryBlue, secondaryBlue)
-                    ),
-                    shape = RoundedCornerShape(bottomStart = 60.dp, bottomEnd = 60.dp)
-                )
-        )
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp)) {
+            IconButton(onClick = { navController.popBackStack() }) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar", tint = MaterialTheme.colorScheme.onBackground)
+            }
+        }
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp)
-                .verticalScroll(scrollState),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top
-        ) {
+        Column(modifier = Modifier.padding(horizontal = 28.dp)) {
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .background(Brush.linearGradient(listOf(VerdeAzulado, AzulPrincipal)), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("AMLS", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
+            }
+
             Spacer(modifier = Modifier.height(20.dp))
-
-            // Botón Regresar
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Start
-            ) {
-                IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Regresar",
-                        tint = Color.White
-                    )
-                }
-            }
-
-            // Logo pequeño
-            Surface(
-                modifier = Modifier.size(80.dp),
-                shape = CircleShape,
-                color = Color.White,
-                shadowElevation = 8.dp
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = "AMLS",
-                        color = primaryBlue,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 20.sp
-                    )
-                }
-            }
-
+            EtiquetaContexto("Únete a AMLS")
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                text = "Crear Cuenta",
-                color = Color.White,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
-            )
+            Text("Crear cuenta", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
+            Spacer(modifier = Modifier.height(6.dp))
+            Text("Regístrate para empezar tu aprendizaje", fontSize = 15.sp, color = GrisTexto)
 
-            Text(
-                text = "Regístrate para empezar tu aprendizaje",
-                color = Color.White.copy(alpha = 0.8f),
-                fontSize = 14.sp,
-                textAlign = TextAlign.Center
-            )
+            Spacer(modifier = Modifier.height(28.dp))
 
-            Spacer(modifier = Modifier.height(32.dp))
+            AmlsTextField(value = name, onValueChange = { name = it }, label = "Nombre completo")
+            Spacer(modifier = Modifier.height(14.dp))
+            AmlsTextField(value = email, onValueChange = { email = it }, label = "Correo electrónico")
+            Spacer(modifier = Modifier.height(14.dp))
+            AmlsTextField(value = password, onValueChange = { password = it }, label = "Contraseña", esPassword = true)
+            Spacer(modifier = Modifier.height(14.dp))
+            AmlsTextField(value = confirmPassword, onValueChange = { confirmPassword = it }, label = "Confirmar contraseña", esPassword = true)
 
-            // Tarjeta de Registro
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        label = { Text("Nombre Completo") },
-                        leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    OutlinedTextField(
-                        value = email,
-                        onValueChange = { email = it },
-                        label = { Text("Correo Electrónico") },
-                        leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    OutlinedTextField(
-                        value = password,
-                        onValueChange = { password = it },
-                        label = { Text("Contraseña") },
-                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    OutlinedTextField(
-                        value = confirmPassword,
-                        onValueChange = { confirmPassword = it },
-                        label = { Text("Confirmar Contraseña") },
-                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(32.dp))
-
-                    Button(
-                        onClick = { /* Lógica de registro */ },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = primaryBlue)
-                    ) {
-                        Text("Registrarse", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
+            val mensajeError = errorValidacion ?: (uiState as? AuthUiState.Error)?.mensaje
+            if (mensajeError != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(mensajeError, color = Color(0xFFDC2626), fontSize = 13.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            TextButton(onClick = { navController.popBackStack() }) {
+            Button(
+                onClick = { intentarRegistrar() },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = AzulPrincipal),
+                enabled = camposHabilitados
+            ) {
+                if (uiState is AuthUiState.Cargando) {
+                    CircularProgressIndicator(modifier = Modifier.size(22.dp), color = Color.White)
+                } else {
+                    Text("Crear cuenta", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                Text("¿Ya tienes cuenta? ", color = GrisTexto, fontSize = 14.sp)
                 Text(
-                    "¿Ya tienes cuenta? Inicia sesión",
-                    color = primaryBlue,
-                    fontWeight = FontWeight.Medium
+                    "Inicia sesión",
+                    color = AzulPrincipal,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                    modifier = Modifier.clickableSinIndicacion { navController.popBackStack() }
                 )
             }
-            
-            Spacer(modifier = Modifier.height(16.dp))
+
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }

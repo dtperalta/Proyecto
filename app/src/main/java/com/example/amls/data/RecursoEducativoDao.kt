@@ -13,6 +13,6 @@ interface RecursoEducativoDao {
     suspend fun insertarRecursos(recursos: List<RecursoEducativo>)
 
     // Lee los recursos para mostrarlos en la pantalla sin importar si hay internet
-    @Query("SELECT * FROM recursos_educativos")
+    @Query("SELECT * FROM recursos_educativos ORDER BY id ASC")
     fun obtenerRecursosLocales(): Flow<List<RecursoEducativo>>
 }

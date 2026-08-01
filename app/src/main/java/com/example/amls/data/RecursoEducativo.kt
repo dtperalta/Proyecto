@@ -10,5 +10,8 @@ data class RecursoEducativo(
     val tipo_formato: String,
     val url_descarga: String,
     val tiene_lengua_senas: Boolean,
-    val nivel_dificultad: String
+    val nivel_dificultad: String,
+    val transcripcion: String? = null,
+    val subtitulosUrl: String? = null,
+    val urlLenguaSenas: String? = null
 )

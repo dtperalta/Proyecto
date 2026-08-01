@@ -4,11 +4,39 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.amls.hardware.AmlsSensorManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 import kotlin.math.sqrt
+
+private fun Flow<Float>.promedioMovil(tamanoVentana: Int): Flow<Float> =
+    scan(emptyList<Float>()) { ventana, valor -> (ventana + valor).takeLast(tamanoVentana) }
+        .filter { it.isNotEmpty() }
+        .map { it.average().toFloat() }
+
+private fun Flow<Float>.desviacionEstandarMovil(tamanoVentana: Int): Flow<Float> =
+    scan(emptyList<Float>()) { ventana, valor -> (ventana + valor).takeLast(tamanoVentana) }
+        .filter { it.size >= 2 }
+        .map { ventana ->
+            val promedio = ventana.average()
+            val varianza = ventana.map { (it - promedio) * (it - promedio) }.average()
+            kotlin.math.sqrt(varianza).toFloat()
+        }
+
+private fun Flow<FloatArray>.promedioMovilVectorial(tamanoVentana: Int): Flow<FloatArray> =
+    scan(emptyList<FloatArray>()) { ventana, valor -> (ventana + listOf(valor)).takeLast(tamanoVentana) }
+        .filter { it.isNotEmpty() }
+        .map { ventana ->
+            floatArrayOf(
+                ventana.map { it[0] }.average().toFloat(),
+                ventana.map { it[1] }.average().toFloat(),
+                ventana.map { it[2] }.average().toFloat()
+            )
+        }
 
 @HiltViewModel
 class AmlsViewModel @Inject constructor(
@@ -52,6 +80,30 @@ class AmlsViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = "Calculando movimiento..."
     )
+
+    // Normalización LOGARÍTMICA (no lineal): la luz varía en órdenes de
+    // magnitud entre interior y sol directo. log10(lux+1)/4.0 da:
+    // 15 lux -> ~0.30, 300 lux -> ~0.62, 2000 lux -> ~0.83 — alineado
+    // con tus propios umbrales de ambientContext.
+    val nivelLuzNormalizado = lightLevel.promedioMovil(8).map { lux ->
+        (kotlin.math.log10(lux.toDouble() + 1.0) / 4.0).toFloat().coerceIn(0f, 1f)
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = 0.5f
+    )
+
+    val nivelMovimientoNormalizado = acceleration
+        .map { acc -> sqrt((acc[0] * acc[0] + acc[1] * acc[1] + acc[2] * acc[2]).toDouble()).toFloat() }
+        .desviacionEstandarMovil(30) // más historia, menos sensible a golpes cortos
+        .map { desviacionEstandar ->
+            (desviacionEstandar.coerceIn(0f, 1.3f) / 1.3f)
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = 0f
+        )
 
     fun startSensors() {
         sensorManager.startListening()

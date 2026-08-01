@@ -11,33 +11,37 @@ class SincronizacionRepository @Inject constructor(
     private val apiService: AmlsApiService,
     private val recursoDao: RecursoEducativoDao
 ) {
-    // Exponemos los datos locales siempre (Offline-First)
+    // Exponemos los datos locales siempre (Offline-First, QA-7)
     val recursosLocales = recursoDao.obtenerRecursosLocales()
 
-    // Función que conecta al servidor Python y guarda en Room
-    suspend fun descargarTema(temaId: String) {
+    /**
+     * Descarga todos los recursos educativos disponibles en el backend
+     * y los guarda en Room. Se llama al iniciar sesión (ver
+     * LearningViewModel), y como es "best-effort", si falla por falta
+     * de red, la UI simplemente sigue leyendo de recursosLocales.
+     */
+    suspend fun sincronizarRecursos() {
         try {
-            // 1. Descargamos del Cloud Simulado
-            val recursosDto = apiService.obtenerRecursos(temaId)
-            
-            // 2. Mapeamos la respuesta de la red al modelo de Room
+            val recursosDto = apiService.listarRecursos()
+
             val recursosEntity = recursosDto.map { dto ->
                 RecursoEducativo(
                     id = dto.id,
                     titulo = dto.titulo,
                     tipo_formato = dto.tipo_formato,
-                    url_descarga = dto.url_descarga,
+                    url_descarga = dto.url_descarga ?: "",
                     tiene_lengua_senas = dto.tiene_lengua_senas,
-                    nivel_dificultad = dto.nivel_dificultad
+                    nivel_dificultad = dto.nivel_dificultad,
+                    transcripcion = dto.transcripcion,
+                    subtitulosUrl = dto.url_subtitulos,
+                    urlLenguaSenas = dto.url_lengua_senas
                 )
             }
-            
-            // 3. Guardamos localmente para cumplir el escenario QA-7
+
             recursoDao.insertarRecursos(recursosEntity)
-            
         } catch (e: Exception) {
-            // Si falla (ej. no hay internet), no pasa nada, 
-            // la UI seguirá leyendo de 'recursosLocales'
+            // Sin conexión: la UI sigue funcionando con lo que ya
+            // hay en Room (QA-7, QA-8).
             e.printStackTrace()
         }
     }
