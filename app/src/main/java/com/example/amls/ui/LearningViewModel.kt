@@ -6,8 +6,10 @@ import com.example.amls.auth.TokenManager
 import com.example.amls.data.PerfilAprendiz
 import com.example.amls.data.RecursoEducativo
 import com.example.amls.ml.DecisionAdaptacion
+import com.example.amls.ml.DeviceResourceMonitor
 import com.example.amls.ml.LocalAdaptationEngine
 import com.example.amls.ml.VideoCacheManager
+import com.example.amls.ml.VideoProgressManager
 import com.example.amls.network.AmlsApiService
 import com.example.amls.network.HistorialCreateRequest
 import com.example.amls.network.RecomendacionRequest
@@ -24,7 +26,9 @@ class LearningViewModel @Inject constructor(
     private val repository: SincronizacionRepository,
     private val apiService: AmlsApiService,
     private val localAdaptationEngine: LocalAdaptationEngine,
-    @get:androidx.media3.common.util.UnstableApi val videoCacheManager: VideoCacheManager
+    @get:androidx.media3.common.util.UnstableApi val videoCacheManager: VideoCacheManager,
+    val resourceMonitor: DeviceResourceMonitor,
+    val videoProgressManager: VideoProgressManager
 ) : ViewModel() {
 
     // Extraemos los datos LOCALES (Offline-First) y los convertimos en un StateFlow
@@ -112,6 +116,17 @@ class LearningViewModel @Inject constructor(
             if (respuesta.isSuccessful) respuesta.body()?.recursos_dominados ?: emptyList() else emptyList()
         } catch (e: Exception) {
             emptyList()
+        }
+    }
+
+    suspend fun descargarTextoDeUrl(url: String) = apiService.descargarArchivoTexto(url)
+
+    suspend fun yaInicioLeccion(recursoId: String): Boolean {
+        return try {
+            val respuesta = apiService.obtenerHistorial()
+            respuesta.any { it.recurso_id == recursoId && it.tipo_evento == "leccion_iniciada" }
+        } catch (e: Exception) {
+            false
         }
     }
 }

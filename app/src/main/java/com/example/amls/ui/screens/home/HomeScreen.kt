@@ -1,5 +1,6 @@
 package com.example.amls.ui.screens.home
 
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.amls.data.RecursoEducativo
@@ -33,7 +35,7 @@ private val VERDE_AZULADO = Color(0xFF009383)
 @Composable
 fun HomeScreen(
     navController: NavController,
-    learningViewModel: LearningViewModel = hiltViewModel(),
+    learningViewModel: LearningViewModel = hiltViewModel(LocalContext.current as ComponentActivity),
     perfilViewModel: PerfilViewModel = hiltViewModel()
 ) {
     val recursos by learningViewModel.recursos.collectAsState()
@@ -41,10 +43,21 @@ fun HomeScreen(
     var nivelRecomendado by remember { mutableStateOf<String?>(null) }
     var recursosDominados by remember { mutableStateOf<List<String>>(emptyList()) }
 
+    val bateriaBaja = remember { learningViewModel.resourceMonitor.bateriaBaja() }
+    val almacenamientoBajo = remember { learningViewModel.resourceMonitor.almacenamientoBajo() }
+
     LaunchedEffect(recursos, perfil) {
         recursosDominados = learningViewModel.obtenerRecursosDominados()
-        perfil?.let {
-            nivelRecomendado = learningViewModel.obtenerNivelRecomendadoReal(it)
+        val nivelSugerido = perfil?.let { learningViewModel.obtenerNivelRecomendadoReal(it) }
+
+        // Solo se muestra el banner si existe una lección de ese nivel
+        // que el estudiante todavía NO ha iniciado — en cuanto la
+        // empieza, deja de tener sentido seguir sugiriéndosela.
+        val leccionSugerida = recursos.firstOrNull { it.nivel_dificultad == nivelSugerido }
+        nivelRecomendado = if (leccionSugerida != null && !learningViewModel.yaInicioLeccion(leccionSugerida.id)) {
+            nivelSugerido
+        } else {
+            null
         }
     }
 
@@ -77,6 +90,29 @@ fun HomeScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                if (bateriaBaja || almacenamientoBajo) {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3CD))
+                        ) {
+                            Text(
+                                text = when {
+                                    bateriaBaja && perfil?.preferenciaComunicativa == "Mixto" ->
+                                        "Batería baja: se te preguntará si deseas desactivar la lengua de señas para ahorrar energía"
+                                    bateriaBaja ->
+                                        "Batería baja: el sistema podría ajustar algunas funciones para ahorrar energía"
+                                    else ->
+                                        "Poco almacenamiento disponible: es posible que algunos videos no se guarden para uso sin conexión"
+                                },
+                                modifier = Modifier.padding(12.dp),
+                                fontSize = 13.sp,
+                                color = Color(0xFF856404)
+                            )
+                        }
+                    }
+                }
+
                 nivelRecomendado?.let { nivel ->
                     item {
                         BannerRecomendacion(nivel)

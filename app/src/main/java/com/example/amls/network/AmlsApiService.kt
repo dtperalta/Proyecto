@@ -6,6 +6,7 @@ import retrofit2.http.GET
 import retrofit2.http.PUT
 import retrofit2.http.POST
 import retrofit2.http.Path
+import retrofit2.http.Url
 
 // ============================================
 // AUTH
@@ -223,4 +224,7 @@ interface AmlsApiService {
 
     @GET("/quiz/resultado")
     suspend fun obtenerResultadoQuiz(): retrofit2.Response<ResultadoQuizDto>
+
+    @GET
+    suspend fun descargarArchivoTexto(@Url url: String): retrofit2.Response<okhttp3.ResponseBody>
 }

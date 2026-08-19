@@ -25,6 +25,19 @@ class SincronizacionRepository @Inject constructor(
             val recursosDto = apiService.listarRecursos()
 
             val recursosEntity = recursosDto.map { dto ->
+                // Descarga el contenido del .srt AHORA (con conexión
+                // garantizada, ya que estamos sincronizando), para que
+                // la transcripción con resaltado funcione sin depender
+                // de la red al momento de reproducir (QA-7).
+                val contenidoSrt = dto.url_subtitulos?.let { url ->
+                    try {
+                        val respuesta = apiService.descargarArchivoTexto(url)
+                        if (respuesta.isSuccessful) respuesta.body()?.string() else null
+                    } catch (e: Exception) {
+                        null // si falla, simplemente no hay resaltado para esta lección esta vez
+                    }
+                }
+
                 RecursoEducativo(
                     id = dto.id,
                     titulo = dto.titulo,
@@ -34,7 +47,8 @@ class SincronizacionRepository @Inject constructor(
                     nivel_dificultad = dto.nivel_dificultad,
                     transcripcion = dto.transcripcion,
                     subtitulosUrl = dto.url_subtitulos,
-                    urlLenguaSenas = dto.url_lengua_senas
+                    urlLenguaSenas = dto.url_lengua_senas,
+                    contenidoSrtCache = contenidoSrt
                 )
             }
 

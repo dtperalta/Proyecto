@@ -12,7 +12,8 @@ import javax.inject.Singleton
 @androidx.media3.common.util.UnstableApi
 @Singleton
 class VideoCacheManager @Inject constructor(
-    @ApplicationContext context: Context
+    @ApplicationContext context: Context,
+    private val resourceMonitor: DeviceResourceMonitor
 ) {
     // 500 MB de espacio máximo para videos cacheados — cuando se llena,
     // se borran automáticamente los menos usados recientemente (LRU).
@@ -25,4 +26,10 @@ class VideoCacheManager @Inject constructor(
             StandaloneDatabaseProvider(context)
         )
     }
+
+    /**
+     * RF-9: señal informativa sobre si conviene seguir cacheando
+     * contenido nuevo, según el almacenamiento disponible real.
+     */
+    fun puedeCachearContenidoNuevo(): Boolean = !resourceMonitor.almacenamientoBajo()
 }

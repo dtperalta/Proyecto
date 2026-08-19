@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalContext
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -31,13 +32,21 @@ fun SettingsScreen(
     navController: NavController,
     viewModel: PerfilViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel(),
-    themeViewModel: ThemeViewModel = hiltViewModel(LocalContext.current as androidx.activity.ComponentActivity)
+    themeViewModel: ThemeViewModel = hiltViewModel(LocalContext.current as androidx.activity.ComponentActivity),
+    learningViewModel: com.example.amls.ui.LearningViewModel = hiltViewModel(LocalContext.current as androidx.activity.ComponentActivity)
 ) {
     val perfil by viewModel.perfilEditable.collectAsState()
     val modoTema by themeViewModel.modoTema.collectAsState()
     val scrollState = rememberScrollState()
     var mostrarDialogoLogout by remember { mutableStateOf(false) }
     val context = LocalContext.current
+
+    BackHandler {
+        perfil?.let { viewModel.guardarPerfil(it) }
+        learningViewModel.videoProgressManager.limpiarDecisionSenas()
+        Toast.makeText(context, "Configuración guardada con éxito", Toast.LENGTH_SHORT).show()
+        navController.popBackStack()
+    }
 
     fun cerrarSesion() {
         authViewModel.cerrarSesion()
@@ -72,7 +81,12 @@ fun SettingsScreen(
             TopAppBar(
                 title = { Text("Ajustes de Perfil y Accesibilidad", color = Color.White, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = {
+                        perfil?.let { viewModel.guardarPerfil(it) }
+                        learningViewModel.videoProgressManager.limpiarDecisionSenas()
+                        Toast.makeText(context, "Configuración guardada con éxito", Toast.LENGTH_SHORT).show()
+                        navController.popBackStack()
+                    }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar", tint = Color.White)
                     }
                 },
@@ -201,24 +215,6 @@ fun SettingsScreen(
                 }
 
                 Spacer(modifier = Modifier.height(40.dp))
-
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxWidth().padding(all = 16.dp)
-                ) {
-                    Button(
-                        onClick = {
-                            viewModel.guardarPerfil(p)
-                            Toast.makeText(context, "Configuración guardada con éxito", Toast.LENGTH_SHORT).show()
-                            navController.popBackStack()
-                        },
-                        modifier = Modifier.height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF005179)),
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp)
-                    ) {
-                        Text("GUARDAR", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    }
-                }
             } ?: Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }

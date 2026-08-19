@@ -13,5 +13,6 @@ data class RecursoEducativo(
     val nivel_dificultad: String,
     val transcripcion: String? = null,
     val subtitulosUrl: String? = null,
-    val urlLenguaSenas: String? = null
+    val urlLenguaSenas: String? = null,
+    val contenidoSrtCache: String? = null
 )

@@ -6,7 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 
 // Aumentamos la versión a 2 y agregamos la nueva entidad
-@Database(entities = [PerfilAprendiz::class, RecursoEducativo::class], version = 5, exportSchema = false)
+@Database(entities = [PerfilAprendiz::class, RecursoEducativo::class], version = 6, exportSchema = false)
 abstract class AmlsDatabase : RoomDatabase() {
     abstract fun perfilAprendizDao(): PerfilAprendizDao
     abstract fun recursoEducativoDao(): RecursoEducativoDao // Nuevo DAO

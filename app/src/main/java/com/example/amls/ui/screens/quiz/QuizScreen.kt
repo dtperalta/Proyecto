@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.example.amls.ui.AuthViewModel
 import com.example.amls.ui.QuizUiState
 import com.example.amls.ui.QuizViewModel
 import com.example.amls.ui.navigation.DestinoAmls
@@ -27,10 +30,12 @@ private val VERDE_AZULADO = androidx.compose.ui.graphics.Color(0xFF009383)
 @Composable
 fun QuizScreen(
     navController: NavController,
-    viewModel: QuizViewModel = hiltViewModel()
+    viewModel: QuizViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val respuestas by viewModel.respuestas.collectAsState()
+    var mostrarDialogoLogout by remember { mutableStateOf(false) }
 
     fun irAInicio() {
         navController.navigate(DestinoAmls.Inicio.ruta) {
@@ -38,10 +43,43 @@ fun QuizScreen(
         }
     }
 
+    if (mostrarDialogoLogout) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoLogout = false },
+            title = { Text("Cerrar sesión") },
+            text = { Text("¿Seguro que quieres cerrar tu sesión? Tendrás que completar el quiz de nuevo al volver a entrar.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    mostrarDialogoLogout = false
+                    authViewModel.cerrarSesion()
+                    navController.navigate(DestinoAmls.Login.ruta) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }) {
+                    Text("Cerrar sesión", color = androidx.compose.ui.graphics.Color.Red)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarDialogoLogout = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Quiz Diagnóstico", fontWeight = FontWeight.Bold) },
+                actions = {
+                    IconButton(onClick = { mostrarDialogoLogout = true }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ExitToApp,
+                            contentDescription = "Cerrar sesión",
+                            tint = androidx.compose.ui.graphics.Color.White
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = AZUL_PRINCIPAL,
                     titleContentColor = androidx.compose.ui.graphics.Color.White,
